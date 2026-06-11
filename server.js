@@ -12,11 +12,21 @@ app.use(
   cookieSession({
     name: "chore-session",
     secret: process.env.SESSION_SECRET || "dev-secret-change-me",
-    maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+    maxAge: 365 * 24 * 60 * 60 * 1000, // 1 year
     sameSite: "lax",
     httpOnly: true,
   })
 );
+
+// Rolling sessions: any visit re-stamps the cookie (at most once a day), so
+// active users stay signed in indefinitely until they explicitly sign out.
+app.use((req, res, next) => {
+  if (req.session?.userId) {
+    const today = new Date().toDateString();
+    if (req.session.seen !== today) req.session.seen = today;
+  }
+  next();
+});
 app.use(express.static(path.join(__dirname, "public")));
 
 /* ---------- Period keys (server local time; set TZ env var on Railway) ---------- */

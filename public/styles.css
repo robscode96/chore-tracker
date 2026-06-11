@@ -100,46 +100,80 @@ h1 {
   font-weight: 700;
 }
 
-/* ---------- User tabs ---------- */
+/* ---------- Login ---------- */
 
-.user-bar {
+.login-wrap {
+  min-height: 100vh;
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  padding: 20px;
+}
+
+.login-card {
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 40px 36px;
+  width: 100%;
+  max-width: 360px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.login-emoji {
+  font-size: 2.6rem;
+}
+
+.login-card h1 {
+  font-size: 1.5rem;
+}
+
+.login-card .subtitle {
+  margin: 0 0 10px;
+}
+
+.login-card input {
+  padding: 12px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 0.95rem;
+  color: var(--text);
+}
+
+.login-card input:focus {
+  outline: 2px solid var(--primary);
+  outline-offset: -1px;
+}
+
+.btn-block {
+  width: 100%;
+}
+
+.login-error {
+  margin: 0;
+  color: var(--danger);
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+/* ---------- Session bar ---------- */
+
+.session-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   margin-bottom: 18px;
 }
 
-.user-tabs {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  flex: 1;
-}
-
-.user-tab {
+.signed-in {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: var(--card);
-  color: var(--text);
-  font-size: 0.92rem;
+  gap: 9px;
   font-weight: 600;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.user-tab:hover {
-  border-color: var(--primary);
-}
-
-.user-tab.active {
-  background: var(--primary);
-  border-color: var(--primary);
-  color: #fff;
-  box-shadow: 0 4px 12px rgba(91, 108, 249, 0.35);
+  font-size: 0.95rem;
 }
 
 .user-avatar {
@@ -228,18 +262,6 @@ h1 {
   color: var(--primary);
 }
 
-.btn-danger-ghost {
-  background: transparent;
-  color: var(--danger);
-  border: 1px solid transparent;
-  font-size: 0.85rem;
-  padding: 8px 14px;
-}
-
-.btn-danger-ghost:hover {
-  border-color: var(--danger);
-}
-
 /* ---------- Chore sections ---------- */
 
 .section {
@@ -315,6 +337,16 @@ h1 {
 .chore-item.done .chore-label {
   color: var(--text-soft);
   text-decoration: line-through;
+}
+
+.done-by {
+  flex-shrink: 0;
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 999px;
+  opacity: 0.85;
 }
 
 /* Custom checkbox */
@@ -406,20 +438,6 @@ h1 {
 .empty-state .big {
   font-size: 2.4rem;
   margin-bottom: 10px;
-}
-
-.empty-row {
-  padding: 14px 18px;
-  color: var(--text-soft);
-  font-size: 0.9rem;
-  font-style: italic;
-}
-
-/* ---------- Footer ---------- */
-
-.app-footer {
-  margin-top: 26px;
-  text-align: center;
 }
 
 @media (max-width: 520px) {

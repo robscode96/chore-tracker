@@ -1,0 +1,18 @@
+{
+  "name": "chore-tracker",
+  "version": "1.0.0",
+  "description": "Shared household chore tracker with daily/weekly/monthly resets",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cookie-session": "^2.1.0",
+    "express": "^4.21.2",
+    "pg": "^8.13.1"
+  }
+}

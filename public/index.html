@@ -7,7 +7,33 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <div class="app">
+  <!-- Login view -->
+  <div id="login-view" class="login-wrap" hidden>
+    <form id="login-form" class="login-card">
+      <div class="login-emoji">🏠</div>
+      <h1>Chore Tracker</h1>
+      <p class="subtitle">Sign in to see the household chores</p>
+      <input
+        type="text"
+        id="login-username"
+        placeholder="Username"
+        autocomplete="username"
+        required
+      />
+      <input
+        type="password"
+        id="login-password"
+        placeholder="Password"
+        autocomplete="current-password"
+        required
+      />
+      <button type="submit" class="btn btn-primary btn-block">Sign in</button>
+      <p id="login-error" class="login-error" hidden></p>
+    </form>
+  </div>
+
+  <!-- Main app view -->
+  <div id="app-view" class="app" hidden>
     <header class="app-header">
       <div class="title-block">
         <h1>🏠 Chore Tracker</h1>
@@ -22,10 +48,13 @@
       </div>
     </header>
 
-    <nav class="user-bar">
-      <div id="user-tabs" class="user-tabs"></div>
-      <button id="add-user-btn" class="btn btn-ghost" title="Add a user">+ User</button>
-    </nav>
+    <div class="session-bar">
+      <span class="signed-in">
+        <span id="me-avatar" class="user-avatar"></span>
+        <span id="me-name"></span>
+      </span>
+      <button id="logout-btn" class="btn btn-ghost">Sign out</button>
+    </div>
 
     <form id="add-chore-form" class="add-chore-form">
       <input
@@ -44,10 +73,6 @@
     </form>
 
     <main id="chore-sections"></main>
-
-    <footer class="app-footer">
-      <button id="remove-user-btn" class="btn btn-danger-ghost">Remove current user</button>
-    </footer>
   </div>
 
   <script src="app.js"></script>

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chore Tracker</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="app-header">
+      <div class="title-block">
+        <h1>🏠 Chore Tracker</h1>
+        <p id="today-label" class="subtitle"></p>
+      </div>
+      <div class="overall-progress">
+        <svg viewBox="0 0 44 44" class="progress-ring">
+          <circle class="ring-bg" cx="22" cy="22" r="19"></circle>
+          <circle id="ring-fill" class="ring-fill" cx="22" cy="22" r="19"></circle>
+        </svg>
+        <span id="progress-text" class="progress-text">0%</span>
+      </div>
+    </header>
+
+    <nav class="user-bar">
+      <div id="user-tabs" class="user-tabs"></div>
+      <button id="add-user-btn" class="btn btn-ghost" title="Add a user">+ User</button>
+    </nav>
+
+    <form id="add-chore-form" class="add-chore-form">
+      <input
+        type="text"
+        id="chore-name"
+        placeholder="Add a chore… (e.g. Take out trash)"
+        maxlength="60"
+        autocomplete="off"
+      />
+      <select id="chore-freq">
+        <option value="daily">Daily</option>
+        <option value="weekly">Weekly</option>
+        <option value="monthly">Monthly</option>
+      </select>
+      <button type="submit" class="btn btn-primary">Add</button>
+    </form>
+
+    <main id="chore-sections"></main>
+
+    <footer class="app-footer">
+      <button id="remove-user-btn" class="btn btn-danger-ghost">Remove current user</button>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

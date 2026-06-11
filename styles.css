@@ -1,0 +1,437 @@
+:root {
+  --bg: #f1f3f9;
+  --card: #ffffff;
+  --text: #1d2433;
+  --text-soft: #6b7385;
+  --border: #e3e7f0;
+  --primary: #5b6cf9;
+  --primary-soft: #eef0fe;
+  --success: #2eb872;
+  --danger: #e25563;
+  --daily: #5b6cf9;
+  --weekly: #00a8a8;
+  --monthly: #e58b1a;
+  --radius: 14px;
+  --shadow: 0 1px 3px rgba(20, 28, 50, 0.06), 0 8px 24px rgba(20, 28, 50, 0.07);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+    Arial, sans-serif;
+  background: var(--bg);
+  background-image: radial-gradient(
+      circle at 15% 0%,
+      rgba(91, 108, 249, 0.1),
+      transparent 40%
+    ),
+    radial-gradient(circle at 90% 10%, rgba(0, 168, 168, 0.08), transparent 40%);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+.app {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 28px 18px 60px;
+}
+
+/* ---------- Header ---------- */
+
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 22px;
+}
+
+h1 {
+  margin: 0;
+  font-size: 1.7rem;
+  letter-spacing: -0.02em;
+}
+
+.subtitle {
+  margin: 4px 0 0;
+  color: var(--text-soft);
+  font-size: 0.92rem;
+}
+
+.overall-progress {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  flex-shrink: 0;
+}
+
+.progress-ring {
+  width: 64px;
+  height: 64px;
+  transform: rotate(-90deg);
+}
+
+.ring-bg,
+.ring-fill {
+  fill: none;
+  stroke-width: 5;
+  stroke-linecap: round;
+}
+
+.ring-bg {
+  stroke: var(--border);
+}
+
+.ring-fill {
+  stroke: var(--success);
+  transition: stroke-dashoffset 0.4s ease, stroke 0.4s ease;
+}
+
+.progress-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+/* ---------- User tabs ---------- */
+
+.user-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.user-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  flex: 1;
+}
+
+.user-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--text);
+  font-size: 0.92rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.user-tab:hover {
+  border-color: var(--primary);
+}
+
+.user-tab.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(91, 108, 249, 0.35);
+}
+
+.user-avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+/* ---------- Add chore form ---------- */
+
+.add-chore-form {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.add-chore-form input[type="text"] {
+  flex: 1;
+  min-width: 0;
+  padding: 12px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card);
+  font-size: 0.95rem;
+  color: var(--text);
+  box-shadow: var(--shadow);
+}
+
+.add-chore-form input[type="text"]:focus,
+.add-chore-form select:focus {
+  outline: 2px solid var(--primary);
+  outline-offset: -1px;
+}
+
+.add-chore-form select {
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card);
+  font-size: 0.92rem;
+  color: var(--text);
+  cursor: pointer;
+  box-shadow: var(--shadow);
+}
+
+/* ---------- Buttons ---------- */
+
+.btn {
+  border: none;
+  border-radius: var(--radius);
+  padding: 12px 20px;
+  font-size: 0.92rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(91, 108, 249, 0.35);
+}
+
+.btn-primary:hover {
+  filter: brightness(1.08);
+}
+
+.btn-ghost {
+  background: transparent;
+  border: 1px dashed var(--text-soft);
+  color: var(--text-soft);
+  border-radius: 999px;
+  padding: 8px 14px;
+  white-space: nowrap;
+}
+
+.btn-ghost:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.btn-danger-ghost {
+  background: transparent;
+  color: var(--danger);
+  border: 1px solid transparent;
+  font-size: 0.85rem;
+  padding: 8px 14px;
+}
+
+.btn-danger-ghost:hover {
+  border-color: var(--danger);
+}
+
+/* ---------- Chore sections ---------- */
+
+.section {
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  margin-bottom: 18px;
+  overflow: hidden;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.section-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.section.daily .section-dot { background: var(--daily); }
+.section.weekly .section-dot { background: var(--weekly); }
+.section.monthly .section-dot { background: var(--monthly); }
+
+.section-meta {
+  font-size: 0.8rem;
+  color: var(--text-soft);
+  font-weight: 600;
+}
+
+.chore-list {
+  list-style: none;
+  margin: 0;
+  padding: 6px 0;
+}
+
+.chore-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 18px;
+  transition: background 0.15s ease;
+}
+
+.chore-item:hover {
+  background: var(--primary-soft);
+}
+
+.chore-item:hover .delete-btn {
+  opacity: 1;
+}
+
+.chore-label {
+  flex: 1;
+  font-size: 0.97rem;
+  cursor: pointer;
+  user-select: none;
+  transition: color 0.2s ease;
+}
+
+.chore-item.done .chore-label {
+  color: var(--text-soft);
+  text-decoration: line-through;
+}
+
+/* Custom checkbox */
+
+.toggle {
+  position: relative;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.toggle input {
+  position: absolute;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  cursor: pointer;
+}
+
+.toggle .checkmark {
+  position: absolute;
+  inset: 0;
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.toggle input:checked + .checkmark {
+  background: var(--success);
+  border-color: var(--success);
+}
+
+.toggle .checkmark::after {
+  content: "";
+  width: 6px;
+  height: 11px;
+  border: solid #fff;
+  border-width: 0 2.5px 2.5px 0;
+  transform: rotate(45deg) scale(0);
+  margin-top: -2px;
+  transition: transform 0.15s ease;
+}
+
+.toggle input:checked + .checkmark::after {
+  transform: rotate(45deg) scale(1);
+}
+
+.delete-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-soft);
+  font-size: 1.05rem;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 8px;
+  opacity: 0;
+  transition: all 0.15s ease;
+}
+
+.delete-btn:hover {
+  color: var(--danger);
+  background: rgba(226, 85, 99, 0.1);
+}
+
+/* Always show delete on touch devices */
+@media (hover: none) {
+  .delete-btn {
+    opacity: 1;
+  }
+}
+
+/* ---------- Empty states ---------- */
+
+.empty-state {
+  text-align: center;
+  padding: 50px 20px;
+  color: var(--text-soft);
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.empty-state .big {
+  font-size: 2.4rem;
+  margin-bottom: 10px;
+}
+
+.empty-row {
+  padding: 14px 18px;
+  color: var(--text-soft);
+  font-size: 0.9rem;
+  font-style: italic;
+}
+
+/* ---------- Footer ---------- */
+
+.app-footer {
+  margin-top: 26px;
+  text-align: center;
+}
+
+@media (max-width: 520px) {
+  .add-chore-form {
+    flex-wrap: wrap;
+  }
+
+  .add-chore-form input[type="text"] {
+    flex-basis: 100%;
+  }
+
+  .add-chore-form select {
+    flex: 1;
+  }
+}

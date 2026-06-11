@@ -4,7 +4,7 @@ const zlib = require("zlib");
 const fs = require("fs");
 const path = require("path");
 
-const BG = [91, 108, 249]; // #5b6cf9
+const BG = [255, 107, 94]; // #ff6b5e
 const OUT = path.join(__dirname, "..", "public", "icons");
 
 function chunk(type, data) {

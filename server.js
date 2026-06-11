@@ -29,7 +29,9 @@ function dateKey(d) {
 }
 
 function currentPeriodKey(freq, now = new Date()) {
-  if (freq === "daily") return dateKey(now);
+  // Day-specific chores reset every day, like daily ones: each due date
+  // is its own period.
+  if (freq === "daily" || freq === "days") return dateKey(now);
   if (freq === "weekly") {
     const monday = new Date(now);
     monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
@@ -98,7 +100,7 @@ app.get("/api/chores", requireAuth, async (req, res, next) => {
   try {
     const keys = currentKeys();
     const { rows } = await pool.query(
-      `SELECT ch.id, ch.name, ch.freq,
+      `SELECT ch.id, ch.name, ch.freq, ch.days,
               comp.user_id AS completed_by_id,
               u.username AS completed_by,
               comp.completed_at
@@ -107,6 +109,7 @@ app.get("/api/chores", requireAuth, async (req, res, next) => {
          ON comp.chore_id = ch.id
         AND comp.period_key = CASE ch.freq
               WHEN 'daily' THEN $1
+              WHEN 'days' THEN $1
               WHEN 'weekly' THEN $2
               ELSE $3
             END
@@ -115,10 +118,12 @@ app.get("/api/chores", requireAuth, async (req, res, next) => {
       [keys.daily, keys.weekly, keys.monthly]
     );
     res.json({
+      today: new Date().getDay(),
       chores: rows.map((r) => ({
         id: r.id,
         name: r.name,
         freq: r.freq,
+        days: r.days,
         done: r.completed_by_id !== null || r.completed_at !== null,
         completedBy: r.completed_by,
       })),
@@ -133,12 +138,23 @@ app.post("/api/chores", requireAuth, async (req, res, next) => {
     const name = String(req.body?.name || "").trim().slice(0, 60);
     const freq = String(req.body?.freq || "");
     if (!name) return res.status(400).json({ error: "Chore name required" });
-    if (!["daily", "weekly", "monthly"].includes(freq)) {
-      return res.status(400).json({ error: "Frequency must be daily, weekly or monthly" });
+    if (!["daily", "weekly", "monthly", "days"].includes(freq)) {
+      return res.status(400).json({ error: "Invalid frequency" });
     }
+
+    let days = null;
+    if (freq === "days") {
+      days = [...new Set((req.body?.days || []).map(Number))]
+        .filter((d) => Number.isInteger(d) && d >= 0 && d <= 6)
+        .sort();
+      if (days.length === 0) {
+        return res.status(400).json({ error: "Pick at least one day" });
+      }
+    }
+
     const { rows } = await pool.query(
-      "INSERT INTO chores (name, freq) VALUES ($1, $2) RETURNING id, name, freq",
-      [name, freq]
+      "INSERT INTO chores (name, freq, days) VALUES ($1, $2, $3) RETURNING id, name, freq, days",
+      [name, freq, days]
     );
     res.status(201).json(rows[0]);
   } catch (err) {

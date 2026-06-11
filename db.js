@@ -33,7 +33,8 @@ async function init() {
     CREATE TABLE IF NOT EXISTS chores (
       id SERIAL PRIMARY KEY,
       name TEXT NOT NULL,
-      freq TEXT NOT NULL CHECK (freq IN ('daily', 'weekly', 'monthly')),
+      freq TEXT NOT NULL,
+      days INTEGER[],
       created_at TIMESTAMPTZ NOT NULL DEFAULT now()
     );
 
@@ -44,6 +45,15 @@ async function init() {
       completed_at TIMESTAMPTZ NOT NULL DEFAULT now(),
       PRIMARY KEY (chore_id, period_key)
     );
+  `);
+
+  // Migrations for databases created by earlier versions: add the days
+  // column and widen the freq constraint to allow day-specific chores.
+  await pool.query(`
+    ALTER TABLE chores ADD COLUMN IF NOT EXISTS days INTEGER[];
+    ALTER TABLE chores DROP CONSTRAINT IF EXISTS chores_freq_check;
+    ALTER TABLE chores ADD CONSTRAINT chores_freq_check
+      CHECK (freq IN ('daily', 'weekly', 'monthly', 'days'));
   `);
 
   const { rows: existingUsers } = await pool.query("SELECT COUNT(*)::int AS n FROM users");

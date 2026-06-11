@@ -4,8 +4,8 @@
   "description": "Shared household chores with daily, weekly and monthly resets",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#f1f3f9",
-  "theme_color": "#5b6cf9",
+  "background_color": "#fdf6ec",
+  "theme_color": "#ff6b5e",
   "icons": [
     {
       "src": "/icons/icon-192.png",

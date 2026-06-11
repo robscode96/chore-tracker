@@ -1,22 +1,43 @@
 /* Chore Tracker frontend — talks to the Express API backed by Postgres.
  * Chores are shared by the whole household: anyone can toggle any chore,
- * and a completed chore shows who did it. Daily/weekly/monthly resets
- * happen server-side via period keys.
+ * and a completed chore shows who did it. Resets happen server-side via
+ * period keys (daily/day-specific at midnight, weekly on Monday, monthly
+ * on the 1st).
  */
 
-const FREQUENCIES = [
-  { id: "daily", label: "Daily", emoji: "☀️", resetNote: "resets every day" },
-  { id: "weekly", label: "Weekly", emoji: "📅", resetNote: "resets every Monday" },
-  { id: "monthly", label: "Monthly", emoji: "🗓️", resetNote: "resets on the 1st" },
+const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const DAY_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+const AVATAR_COLORS = ["#ff6b5e", "#0fa3a3", "#f5a524", "#8b5cf6", "#3b7dd8", "#d63f87"];
+
+const EMOJI_RULES = [
+  [/trash|garbage|recycl|bin/i, "🗑️"],
+  [/dish|plate|kitchen sink/i, "🍽️"],
+  [/vacuum|sweep|mop|floor/i, "🧹"],
+  [/bed/i, "🛏️"],
+  [/laundry|cloth|fold|iron/i, "🧺"],
+  [/plant|water|garden|lawn|mow|weed/i, "🪴"],
+  [/dog|walk|pet|cat|litter|feed/i, "🐾"],
+  [/fridge|freezer/i, "🧊"],
+  [/bathroom|toilet|shower|tub/i, "🚽"],
+  [/window|glass/i, "🪟"],
+  [/grocery|shop|store/i, "🛒"],
+  [/cook|dinner|meal|bake/i, "🍳"],
+  [/car|wash car|oil/i, "🚗"],
+  [/mail|package|bill/i, "📬"],
+  [/dust|wipe|clean/i, "🧽"],
 ];
 
-const AVATAR_COLORS = [
-  "#5b6cf9", "#00a8a8", "#e58b1a", "#e25563",
-  "#8e44ad", "#2eb872", "#d63f87", "#3b7dd8",
-];
+function emojiFor(name) {
+  for (const [re, emoji] of EMOJI_RULES) if (re.test(name)) return emoji;
+  return "✨";
+}
 
 let me = null;
 let chores = [];
+let serverToday = new Date().getDay();
+let lastPct = null;
+let pickedDays = new Set();
 
 /* ---------- API helpers ---------- */
 
@@ -47,11 +68,13 @@ async function showApp() {
   document.getElementById("login-view").hidden = true;
   document.getElementById("app-view").hidden = false;
 
-  document.getElementById("me-name").textContent = me.username;
   const avatar = document.getElementById("me-avatar");
   avatar.textContent = me.username.slice(0, 2).toUpperCase();
   avatar.style.background = colorFor(me.username);
 
+  const hour = new Date().getHours();
+  const part = hour < 12 ? "Morning" : hour < 17 ? "Afternoon" : "Evening";
+  document.getElementById("greeting").textContent = `${part}, ${me.username}!`;
   document.getElementById("today-label").textContent =
     new Date().toLocaleDateString(undefined, {
       weekday: "long",
@@ -73,7 +96,49 @@ function colorFor(name) {
 async function refreshChores() {
   const data = await api("/api/chores");
   chores = data.chores;
+  serverToday = data.today;
   renderChores();
+}
+
+function dueToday(chore) {
+  return (
+    chore.freq === "daily" ||
+    (chore.freq === "days" && (chore.days || []).includes(serverToday))
+  );
+}
+
+function sectionsFor(list) {
+  return [
+    {
+      title: "Today",
+      emoji: "☀️",
+      tone: "coral",
+      note: "resets at midnight",
+      chores: list.filter(dueToday),
+    },
+    {
+      title: "This Week",
+      emoji: "📅",
+      tone: "teal",
+      note: "resets Monday",
+      chores: list.filter((c) => c.freq === "weekly"),
+    },
+    {
+      title: "This Month",
+      emoji: "🗓️",
+      tone: "amber",
+      note: "resets on the 1st",
+      chores: list.filter((c) => c.freq === "monthly"),
+    },
+    {
+      title: "Coming Up",
+      emoji: "⏳",
+      tone: "lilac",
+      note: "not due today",
+      muted: true,
+      chores: list.filter((c) => c.freq === "days" && !dueToday(c)),
+    },
+  ];
 }
 
 function renderChores() {
@@ -86,67 +151,89 @@ function renderChores() {
     const empty = document.createElement("div");
     empty.className = "empty-state";
     empty.innerHTML = `<div class="big">🧹</div>
-      <strong>No chores yet</strong>
-      <p>Add one above to get started.</p>`;
+      <strong>Nothing on the board!</strong>
+      <p>Add the first chore above.</p>`;
     main.appendChild(empty);
     return;
   }
 
-  for (const freq of FREQUENCIES) {
-    const group = chores.filter((c) => c.freq === freq.id);
-    if (group.length === 0) continue;
+  for (const sec of sectionsFor(chores)) {
+    if (sec.chores.length === 0) continue;
 
     const section = document.createElement("section");
-    section.className = `section ${freq.id}`;
+    section.className = `section tone-${sec.tone}` + (sec.muted ? " muted" : "");
 
-    const done = group.filter((c) => c.done).length;
+    const done = sec.chores.filter((c) => c.done).length;
     const header = document.createElement("div");
     header.className = "section-header";
     header.innerHTML = `
-      <span class="section-title">
-        <span class="section-dot"></span>${freq.emoji} ${freq.label}
-      </span>
-      <span class="section-meta">${done}/${group.length} done · ${freq.resetNote}</span>`;
+      <span class="section-title">${sec.emoji} ${sec.title}</span>
+      <span class="section-meta">${
+        sec.muted ? sec.note : `${done}/${sec.chores.length} · ${sec.note}`
+      }</span>`;
     section.appendChild(header);
 
     const list = document.createElement("ul");
     list.className = "chore-list";
-    for (const chore of group) list.appendChild(renderChore(chore));
+    for (const chore of sec.chores) list.appendChild(renderChore(chore, sec.muted));
     section.appendChild(list);
     main.appendChild(section);
   }
 }
 
+function countableChores() {
+  return chores.filter((c) => c.freq !== "days" || dueToday(c));
+}
+
 function renderProgress() {
-  const done = chores.filter((c) => c.done).length;
-  const pct = chores.length ? Math.round((done / chores.length) * 100) : 0;
+  const countable = countableChores();
+  const done = countable.filter((c) => c.done).length;
+  const pct = countable.length ? Math.round((done / countable.length) * 100) : 0;
+
   const ring = document.getElementById("ring-fill");
-  const circumference = 2 * Math.PI * 19;
+  const circumference = 2 * Math.PI * 18;
   ring.style.strokeDasharray = circumference;
   ring.style.strokeDashoffset = circumference * (1 - pct / 100);
   document.getElementById("progress-text").textContent = `${pct}%`;
+
+  if (pct === 100 && lastPct !== null && lastPct < 100) celebrate();
+  lastPct = pct;
 }
 
-function renderChore(chore) {
+function renderChore(chore, muted) {
   const li = document.createElement("li");
   li.className = "chore-item" + (chore.done ? " done" : "");
 
-  const toggle = document.createElement("label");
-  toggle.className = "toggle";
-  const checkbox = document.createElement("input");
-  checkbox.type = "checkbox";
-  checkbox.checked = chore.done;
-  checkbox.addEventListener("change", () => toggleChore(chore));
-  const checkmark = document.createElement("span");
-  checkmark.className = "checkmark";
-  toggle.append(checkbox, checkmark);
+  if (muted) {
+    const dot = document.createElement("span");
+    dot.className = "sleep-dot";
+    dot.textContent = "💤";
+    li.appendChild(dot);
+  } else {
+    const toggle = document.createElement("label");
+    toggle.className = "toggle";
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.checked = chore.done;
+    checkbox.addEventListener("change", () => toggleChore(chore));
+    const checkmark = document.createElement("span");
+    checkmark.className = "checkmark";
+    toggle.append(checkbox, checkmark);
+    li.appendChild(toggle);
+  }
 
   const label = document.createElement("span");
   label.className = "chore-label";
-  label.textContent = chore.name;
-  label.addEventListener("click", () => toggleChore(chore));
+  label.textContent = `${emojiFor(chore.name)} ${chore.name}`;
+  if (!muted) label.addEventListener("click", () => toggleChore(chore));
+  li.appendChild(label);
 
-  li.append(toggle, label);
+  if (chore.freq === "days" && chore.days?.length) {
+    const days = document.createElement("span");
+    days.className = "day-tags";
+    days.textContent = chore.days.map((d) => DAY_SHORT[d]).join(" · ");
+    li.appendChild(days);
+  }
 
   if (chore.done && chore.completedBy) {
     const badge = document.createElement("span");
@@ -159,6 +246,7 @@ function renderChore(chore) {
 
   const del = document.createElement("button");
   del.className = "delete-btn";
+  del.type = "button";
   del.title = "Remove chore";
   del.textContent = "✕";
   del.addEventListener("click", async () => {
@@ -181,6 +269,42 @@ async function toggleChore(chore) {
   } finally {
     await refreshChores().catch(() => {});
   }
+}
+
+/* ---------- Confetti ---------- */
+
+function celebrate() {
+  const layer = document.getElementById("confetti-layer");
+  const bits = ["🎉", "✨", "⭐", "🧹", "💪", "🏆"];
+  for (let i = 0; i < 26; i++) {
+    const bit = document.createElement("span");
+    bit.className = "confetti";
+    bit.textContent = bits[Math.floor(Math.random() * bits.length)];
+    bit.style.left = Math.random() * 100 + "vw";
+    bit.style.animationDelay = Math.random() * 0.6 + "s";
+    bit.style.fontSize = 16 + Math.random() * 18 + "px";
+    layer.appendChild(bit);
+    setTimeout(() => bit.remove(), 3200);
+  }
+}
+
+/* ---------- Day picker ---------- */
+
+function buildDayPicker() {
+  const wrap = document.getElementById("day-chips");
+  wrap.innerHTML = "";
+  DAY_SHORT.forEach((label, idx) => {
+    const chip = document.createElement("button");
+    chip.type = "button";
+    chip.className = "day-chip";
+    chip.textContent = label;
+    chip.addEventListener("click", () => {
+      if (pickedDays.has(idx)) pickedDays.delete(idx);
+      else pickedDays.add(idx);
+      chip.classList.toggle("picked", pickedDays.has(idx));
+    });
+    wrap.appendChild(chip);
+  });
 }
 
 /* ---------- Wiring ---------- */
@@ -211,14 +335,23 @@ document.getElementById("logout-btn").addEventListener("click", async () => {
   showLogin();
 });
 
+document.getElementById("chore-freq").addEventListener("change", (e) => {
+  document.getElementById("day-picker").hidden = e.target.value !== "days";
+});
+
 document.getElementById("add-chore-form").addEventListener("submit", async (e) => {
   e.preventDefault();
   const input = document.getElementById("chore-name");
   const name = input.value.trim();
   if (!name) return;
+  const freq = document.getElementById("chore-freq").value;
+  if (freq === "days" && pickedDays.size === 0) {
+    alert("Pick at least one day for this chore.");
+    return;
+  }
   await api("/api/chores", {
     method: "POST",
-    body: JSON.stringify({ name, freq: document.getElementById("chore-freq").value }),
+    body: JSON.stringify({ name, freq, days: [...pickedDays] }),
   });
   input.value = "";
   input.focus();
@@ -233,6 +366,8 @@ document.addEventListener("visibilitychange", () => {
 setInterval(() => {
   if (me && !document.hidden) refreshChores().catch(() => {});
 }, 60 * 1000);
+
+buildDayPicker();
 
 // On load, restore the session if the cookie is still valid.
 (async () => {

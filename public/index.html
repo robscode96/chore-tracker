@@ -4,22 +4,30 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Chore Tracker</title>
-  <meta name="theme-color" content="#5b6cf9" />
+  <meta name="theme-color" content="#ff6b5e" />
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" href="icons/icon-192.png" type="image/png" />
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Chores" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700;800&display=swap"
+    rel="stylesheet"
+  />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <!-- Login view -->
-  <div id="login-view" class="login-wrap" hidden>
+  <!-- Login page -->
+  <div id="login-view" class="login-page" hidden>
+    <div class="login-blob blob-a"></div>
+    <div class="login-blob blob-b"></div>
     <form id="login-form" class="login-card">
       <div class="login-emoji">🏠</div>
-      <h1>Chore Tracker</h1>
-      <p class="subtitle">Sign in to see the household chores</p>
+      <h1 class="login-title">Chore Tracker</h1>
+      <p class="login-tagline">Who's home? Sign in to pitch in.</p>
       <input
         type="text"
         id="login-username"
@@ -34,54 +42,60 @@
         autocomplete="current-password"
         required
       />
-      <button type="submit" class="btn btn-primary btn-block">Sign in</button>
+      <button type="submit" class="btn btn-big">Let me in!</button>
       <p id="login-error" class="login-error" hidden></p>
     </form>
   </div>
 
-  <!-- Main app view -->
+  <!-- Main app -->
   <div id="app-view" class="app" hidden>
     <header class="app-header">
       <div class="title-block">
-        <h1>🏠 Chore Tracker</h1>
-        <p id="today-label" class="subtitle"></p>
+        <p id="greeting" class="greeting"></p>
+        <h1 id="today-label" class="day-title"></h1>
       </div>
-      <div class="overall-progress">
-        <svg viewBox="0 0 44 44" class="progress-ring">
-          <circle class="ring-bg" cx="22" cy="22" r="19"></circle>
-          <circle id="ring-fill" class="ring-fill" cx="22" cy="22" r="19"></circle>
-        </svg>
-        <span id="progress-text" class="progress-text">0%</span>
+      <div class="header-right">
+        <div class="overall-progress" title="Today's progress">
+          <svg viewBox="0 0 44 44" class="progress-ring">
+            <circle class="ring-bg" cx="22" cy="22" r="18"></circle>
+            <circle id="ring-fill" class="ring-fill" cx="22" cy="22" r="18"></circle>
+          </svg>
+          <span id="progress-text" class="progress-text">0%</span>
+        </div>
+        <button id="logout-btn" class="signout" title="Sign out">
+          <span id="me-avatar" class="user-avatar"></span>
+          <span class="signout-label">sign out</span>
+        </button>
       </div>
     </header>
 
-    <div class="session-bar">
-      <span class="signed-in">
-        <span id="me-avatar" class="user-avatar"></span>
-        <span id="me-name"></span>
-      </span>
-      <button id="logout-btn" class="btn btn-ghost">Sign out</button>
-    </div>
-
     <form id="add-chore-form" class="add-chore-form">
-      <input
-        type="text"
-        id="chore-name"
-        placeholder="Add a chore… (e.g. Take out trash)"
-        maxlength="60"
-        autocomplete="off"
-      />
-      <select id="chore-freq">
-        <option value="daily">Daily</option>
-        <option value="weekly">Weekly</option>
-        <option value="monthly">Monthly</option>
-      </select>
-      <button type="submit" class="btn btn-primary">Add</button>
+      <div class="add-row">
+        <input
+          type="text"
+          id="chore-name"
+          placeholder="What needs doing?"
+          maxlength="60"
+          autocomplete="off"
+        />
+        <select id="chore-freq">
+          <option value="daily">Every day</option>
+          <option value="weekly">Every week</option>
+          <option value="monthly">Every month</option>
+          <option value="days">Specific days</option>
+        </select>
+        <button type="submit" class="btn">Add it</button>
+      </div>
+      <div id="day-picker" class="day-picker" hidden>
+        <span class="day-picker-label">Which days?</span>
+        <div class="day-chips" id="day-chips"></div>
+      </div>
     </form>
 
     <main id="chore-sections"></main>
   </div>
 
+  <div id="confetti-layer"></div>
   <script src="app.js"></script>
 </body>
 </html>

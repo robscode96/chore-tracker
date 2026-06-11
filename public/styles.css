@@ -1,18 +1,24 @@
 :root {
-  --bg: #f1f3f9;
-  --card: #ffffff;
-  --text: #1d2433;
-  --text-soft: #6b7385;
-  --border: #e3e7f0;
-  --primary: #5b6cf9;
-  --primary-soft: #eef0fe;
-  --success: #2eb872;
-  --danger: #e25563;
-  --daily: #5b6cf9;
-  --weekly: #00a8a8;
-  --monthly: #e58b1a;
-  --radius: 14px;
-  --shadow: 0 1px 3px rgba(20, 28, 50, 0.06), 0 8px 24px rgba(20, 28, 50, 0.07);
+  --paper: #fdf6ec;
+  --card: #fffdf8;
+  --ink: #2b2724;
+  --ink-soft: #847c72;
+  --coral: #ff6b5e;
+  --teal: #0fa3a3;
+  --amber: #f5a524;
+  --lilac: #8b5cf6;
+  --green: #34b56f;
+  --danger: #e0354b;
+  --radius: 18px;
+  --border: 2.5px solid var(--ink);
+  --pop: 5px 5px 0 var(--ink);
+  --pop-sm: 3px 3px 0 var(--ink);
+}
+
+/* The fix for the login screen lingering after sign-in: anything with the
+ * hidden attribute stays hidden no matter what display its class sets. */
+[hidden] {
+  display: none !important;
 }
 
 * {
@@ -21,73 +27,210 @@
 
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
-    Arial, sans-serif;
-  background: var(--bg);
-  background-image: radial-gradient(
-      circle at 15% 0%,
-      rgba(91, 108, 249, 0.1),
-      transparent 40%
-    ),
-    radial-gradient(circle at 90% 10%, rgba(0, 168, 168, 0.08), transparent 40%);
-  color: var(--text);
+  font-family: "Nunito", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: var(--paper);
+  background-image: radial-gradient(rgba(43, 39, 36, 0.055) 1.5px, transparent 1.5px);
+  background-size: 26px 26px;
+  color: var(--ink);
   min-height: 100vh;
 }
+
+h1, h2, h3, .btn, .day-chip, .progress-text, .section-title {
+  font-family: "Fredoka", "Nunito", sans-serif;
+}
+
+/* ---------- Login page ---------- */
+
+.login-page {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  overflow: hidden;
+}
+
+.login-blob {
+  position: absolute;
+  border-radius: 50%;
+  opacity: 0.18;
+  pointer-events: none;
+}
+
+.blob-a {
+  width: 420px;
+  height: 420px;
+  background: var(--coral);
+  top: -140px;
+  left: -120px;
+}
+
+.blob-b {
+  width: 380px;
+  height: 380px;
+  background: var(--teal);
+  bottom: -150px;
+  right: -110px;
+}
+
+.login-card {
+  position: relative;
+  background: var(--card);
+  border: var(--border);
+  border-radius: 26px;
+  box-shadow: var(--pop);
+  padding: 42px 38px;
+  width: 100%;
+  max-width: 380px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.login-emoji {
+  font-size: 3.4rem;
+  animation: bob 2.6s ease-in-out infinite;
+}
+
+@keyframes bob {
+  0%, 100% { transform: translateY(0) rotate(-3deg); }
+  50% { transform: translateY(-8px) rotate(3deg); }
+}
+
+.login-title {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.login-tagline {
+  margin: -6px 0 8px;
+  color: var(--ink-soft);
+  font-weight: 600;
+}
+
+.login-card input {
+  padding: 13px 16px;
+  border: var(--border);
+  border-radius: 14px;
+  font-size: 1rem;
+  font-family: inherit;
+  font-weight: 600;
+  color: var(--ink);
+  background: #fff;
+}
+
+.login-card input:focus {
+  outline: none;
+  box-shadow: var(--pop-sm);
+  transform: translate(-2px, -2px);
+}
+
+.login-error {
+  margin: 0;
+  color: var(--danger);
+  font-weight: 800;
+  font-size: 0.9rem;
+}
+
+/* ---------- Buttons ---------- */
+
+.btn {
+  border: var(--border);
+  border-radius: 14px;
+  padding: 11px 20px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  background: var(--coral);
+  color: #fff;
+  box-shadow: var(--pop-sm);
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+}
+
+.btn:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 var(--ink);
+}
+
+.btn:active {
+  transform: translate(3px, 3px);
+  box-shadow: 0 0 0 var(--ink);
+}
+
+.btn-big {
+  padding: 14px 20px;
+  font-size: 1.1rem;
+}
+
+/* ---------- App layout ---------- */
 
 .app {
   max-width: 680px;
   margin: 0 auto;
-  padding: 28px 18px 60px;
+  padding: 26px 18px 70px;
 }
-
-/* ---------- Header ---------- */
 
 .app-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 22px;
+  gap: 14px;
+  margin-bottom: 20px;
 }
 
-h1 {
+.greeting {
   margin: 0;
-  font-size: 1.7rem;
-  letter-spacing: -0.02em;
+  font-weight: 800;
+  color: var(--coral);
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
-.subtitle {
-  margin: 4px 0 0;
-  color: var(--text-soft);
-  font-size: 0.92rem;
+.day-title {
+  margin: 2px 0 0;
+  font-size: 1.65rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
 }
 
 .overall-progress {
   position: relative;
-  width: 64px;
-  height: 64px;
-  flex-shrink: 0;
+  width: 60px;
+  height: 60px;
 }
 
 .progress-ring {
-  width: 64px;
-  height: 64px;
+  width: 60px;
+  height: 60px;
   transform: rotate(-90deg);
 }
 
 .ring-bg,
 .ring-fill {
   fill: none;
-  stroke-width: 5;
+  stroke-width: 6;
   stroke-linecap: round;
 }
 
 .ring-bg {
-  stroke: var(--border);
+  stroke: rgba(43, 39, 36, 0.12);
 }
 
 .ring-fill {
-  stroke: var(--success);
-  transition: stroke-dashoffset 0.4s ease, stroke 0.4s ease;
+  stroke: var(--green);
+  transition: stroke-dashoffset 0.4s ease;
 }
 
 .progress-text {
@@ -96,179 +239,143 @@ h1 {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.85rem;
-  font-weight: 700;
+  font-size: 0.82rem;
+  font-weight: 600;
 }
 
-/* ---------- Login ---------- */
-
-.login-wrap {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-}
-
-.login-card {
-  background: var(--card);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  padding: 40px 36px;
-  width: 100%;
-  max-width: 360px;
-  text-align: center;
+.signout {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  align-items: center;
+  gap: 2px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
 }
 
-.login-emoji {
-  font-size: 2.6rem;
+.signout-label {
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
-.login-card h1 {
-  font-size: 1.5rem;
-}
-
-.login-card .subtitle {
-  margin: 0 0 10px;
-}
-
-.login-card input {
-  padding: 12px 16px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  font-size: 0.95rem;
-  color: var(--text);
-}
-
-.login-card input:focus {
-  outline: 2px solid var(--primary);
-  outline-offset: -1px;
-}
-
-.btn-block {
-  width: 100%;
-}
-
-.login-error {
-  margin: 0;
+.signout:hover .signout-label {
   color: var(--danger);
-  font-size: 0.88rem;
-  font-weight: 600;
-}
-
-/* ---------- Session bar ---------- */
-
-.session-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 18px;
-}
-
-.signed-in {
-  display: inline-flex;
-  align-items: center;
-  gap: 9px;
-  font-weight: 600;
-  font-size: 0.95rem;
 }
 
 .user-avatar {
-  width: 22px;
-  height: 22px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
+  border: var(--border);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.7rem;
-  font-weight: 700;
+  font-size: 0.85rem;
+  font-weight: 800;
   color: #fff;
-  flex-shrink: 0;
+  box-shadow: var(--pop-sm);
 }
 
 /* ---------- Add chore form ---------- */
 
 .add-chore-form {
+  background: var(--card);
+  border: var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--pop);
+  padding: 14px;
+  margin-bottom: 26px;
+}
+
+.add-row {
   display: flex;
-  gap: 8px;
-  margin-bottom: 24px;
+  gap: 10px;
 }
 
 .add-chore-form input[type="text"] {
   flex: 1;
   min-width: 0;
-  padding: 12px 16px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--card);
-  font-size: 0.95rem;
-  color: var(--text);
-  box-shadow: var(--shadow);
+  padding: 11px 14px;
+  border: var(--border);
+  border-radius: 12px;
+  font-size: 0.98rem;
+  font-family: inherit;
+  font-weight: 600;
+  color: var(--ink);
+  background: #fff;
 }
 
 .add-chore-form input[type="text"]:focus,
 .add-chore-form select:focus {
-  outline: 2px solid var(--primary);
-  outline-offset: -1px;
+  outline: none;
+  box-shadow: var(--pop-sm);
+  transform: translate(-1px, -1px);
 }
 
 .add-chore-form select {
-  padding: 12px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--card);
+  padding: 11px 10px;
+  border: var(--border);
+  border-radius: 12px;
   font-size: 0.92rem;
-  color: var(--text);
+  font-family: inherit;
+  font-weight: 700;
+  color: var(--ink);
+  background: #fff;
   cursor: pointer;
-  box-shadow: var(--shadow);
 }
 
-/* ---------- Buttons ---------- */
+.day-picker {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 2px dashed rgba(43, 39, 36, 0.2);
+}
 
-.btn {
-  border: none;
-  border-radius: var(--radius);
-  padding: 12px 20px;
-  font-size: 0.92rem;
+.day-picker-label {
+  font-weight: 800;
+  font-size: 0.88rem;
+  color: var(--ink-soft);
+}
+
+.day-chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.day-chip {
+  border: var(--border);
+  border-radius: 10px;
+  background: #fff;
+  padding: 6px 11px;
+  font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all 0.1s ease;
 }
 
-.btn-primary {
-  background: var(--primary);
+.day-chip.picked {
+  background: var(--teal);
   color: #fff;
-  box-shadow: 0 4px 12px rgba(91, 108, 249, 0.35);
+  box-shadow: var(--pop-sm);
+  transform: translate(-1px, -1px);
 }
 
-.btn-primary:hover {
-  filter: brightness(1.08);
-}
-
-.btn-ghost {
-  background: transparent;
-  border: 1px dashed var(--text-soft);
-  color: var(--text-soft);
-  border-radius: 999px;
-  padding: 8px 14px;
-  white-space: nowrap;
-}
-
-.btn-ghost:hover {
-  border-color: var(--primary);
-  color: var(--primary);
-}
-
-/* ---------- Chore sections ---------- */
+/* ---------- Sections ---------- */
 
 .section {
   background: var(--card);
+  border: var(--border);
   border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  margin-bottom: 18px;
+  box-shadow: var(--pop);
+  margin-bottom: 22px;
   overflow: hidden;
 }
 
@@ -276,50 +383,50 @@ h1 {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 18px;
-  border-bottom: 1px solid var(--border);
+  gap: 10px;
+  padding: 12px 18px;
+  border-bottom: var(--border);
+  color: #fff;
 }
+
+.tone-coral .section-header { background: var(--coral); }
+.tone-teal .section-header { background: var(--teal); }
+.tone-amber .section-header { background: var(--amber); }
+.tone-lilac .section-header { background: var(--lilac); }
 
 .section-title {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-weight: 700;
-  font-size: 1rem;
+  font-weight: 600;
+  font-size: 1.08rem;
 }
-
-.section-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-}
-
-.section.daily .section-dot { background: var(--daily); }
-.section.weekly .section-dot { background: var(--weekly); }
-.section.monthly .section-dot { background: var(--monthly); }
 
 .section-meta {
-  font-size: 0.8rem;
-  color: var(--text-soft);
-  font-weight: 600;
+  font-size: 0.78rem;
+  font-weight: 800;
+  background: rgba(0, 0, 0, 0.18);
+  padding: 4px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.section.muted {
+  opacity: 0.82;
 }
 
 .chore-list {
   list-style: none;
   margin: 0;
-  padding: 6px 0;
+  padding: 8px 0;
 }
 
 .chore-item {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 18px;
-  transition: background 0.15s ease;
+  padding: 11px 18px;
 }
 
 .chore-item:hover {
-  background: var(--primary-soft);
+  background: rgba(43, 39, 36, 0.04);
 }
 
 .chore-item:hover .delete-btn {
@@ -328,33 +435,54 @@ h1 {
 
 .chore-label {
   flex: 1;
-  font-size: 0.97rem;
+  font-size: 1rem;
+  font-weight: 700;
   cursor: pointer;
   user-select: none;
-  transition: color 0.2s ease;
+}
+
+.section.muted .chore-label {
+  cursor: default;
+  color: var(--ink-soft);
 }
 
 .chore-item.done .chore-label {
-  color: var(--text-soft);
-  text-decoration: line-through;
+  color: var(--ink-soft);
+  text-decoration: line-through wavy rgba(43, 39, 36, 0.35) 1.5px;
+}
+
+.sleep-dot {
+  width: 26px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.day-tags {
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: var(--ink-soft);
+  background: rgba(43, 39, 36, 0.07);
+  border-radius: 999px;
+  padding: 3px 9px;
 }
 
 .done-by {
   flex-shrink: 0;
   color: #fff;
   font-size: 0.72rem;
-  font-weight: 700;
+  font-weight: 800;
   padding: 3px 10px;
   border-radius: 999px;
-  opacity: 0.85;
+  border: 2px solid var(--ink);
 }
 
 /* Custom checkbox */
 
 .toggle {
   position: relative;
-  width: 24px;
-  height: 24px;
+  width: 26px;
+  height: 26px;
   flex-shrink: 0;
   cursor: pointer;
 }
@@ -371,29 +499,29 @@ h1 {
 .toggle .checkmark {
   position: absolute;
   inset: 0;
-  border: 2px solid var(--border);
-  border-radius: 8px;
-  background: var(--card);
-  transition: all 0.15s ease;
+  border: var(--border);
+  border-radius: 50%;
+  background: #fff;
+  transition: background 0.15s ease, transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .toggle input:checked + .checkmark {
-  background: var(--success);
-  border-color: var(--success);
+  background: var(--green);
+  transform: scale(1.08);
 }
 
 .toggle .checkmark::after {
   content: "";
   width: 6px;
-  height: 11px;
+  height: 12px;
   border: solid #fff;
-  border-width: 0 2.5px 2.5px 0;
+  border-width: 0 3px 3px 0;
   transform: rotate(45deg) scale(0);
-  margin-top: -2px;
-  transition: transform 0.15s ease;
+  margin-top: -3px;
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .toggle input:checked + .checkmark::after {
@@ -403,53 +531,83 @@ h1 {
 .delete-btn {
   background: transparent;
   border: none;
-  color: var(--text-soft);
+  color: var(--ink-soft);
   font-size: 1.05rem;
+  font-weight: 800;
   cursor: pointer;
   padding: 4px 8px;
   border-radius: 8px;
   opacity: 0;
-  transition: all 0.15s ease;
+  transition: all 0.12s ease;
 }
 
 .delete-btn:hover {
-  color: var(--danger);
-  background: rgba(226, 85, 99, 0.1);
+  color: #fff;
+  background: var(--danger);
 }
 
-/* Always show delete on touch devices */
 @media (hover: none) {
   .delete-btn {
     opacity: 1;
   }
 }
 
-/* ---------- Empty states ---------- */
+/* ---------- Empty state ---------- */
 
 .empty-state {
   text-align: center;
   padding: 50px 20px;
-  color: var(--text-soft);
+  color: var(--ink-soft);
   background: var(--card);
+  border: var(--border);
   border-radius: var(--radius);
-  box-shadow: var(--shadow);
+  box-shadow: var(--pop);
 }
 
 .empty-state .big {
-  font-size: 2.4rem;
+  font-size: 2.6rem;
   margin-bottom: 10px;
 }
 
-@media (max-width: 520px) {
-  .add-chore-form {
+/* ---------- Confetti ---------- */
+
+#confetti-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 50;
+}
+
+.confetti {
+  position: absolute;
+  top: -40px;
+  animation: fall 2.6s ease-in forwards;
+}
+
+@keyframes fall {
+  to {
+    transform: translateY(110vh) rotate(540deg);
+    opacity: 0.7;
+  }
+}
+
+/* ---------- Mobile ---------- */
+
+@media (max-width: 560px) {
+  .add-row {
     flex-wrap: wrap;
   }
 
-  .add-chore-form input[type="text"] {
+  .add-row input[type="text"] {
     flex-basis: 100%;
   }
 
-  .add-chore-form select {
+  .add-row select {
     flex: 1;
+  }
+
+  .day-title {
+    font-size: 1.3rem;
   }
 }

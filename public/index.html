@@ -111,7 +111,10 @@
         <p class="greeting">Household</p>
         <h1 class="day-title">Manage the crew</h1>
       </div>
-      <button id="admin-back-btn" class="btn">← Back</button>
+      <div class="header-buttons">
+        <button id="stats-btn" class="btn btn-alt">📊 Stats</button>
+        <button id="admin-back-btn" class="btn">← Back</button>
+      </div>
     </header>
 
     <form id="add-user-form" class="add-chore-form">
@@ -141,6 +144,18 @@
       </div>
       <ul id="user-list" class="chore-list"></ul>
     </section>
+  </div>
+
+  <!-- Admin: statistics -->
+  <div id="stats-view" class="app" hidden>
+    <header class="app-header">
+      <div class="title-block">
+        <p class="greeting">Statistics</p>
+        <h1 class="day-title">The numbers</h1>
+      </div>
+      <button id="stats-back-btn" class="btn">← Back</button>
+    </header>
+    <main id="stats-sections"></main>
   </div>
 
   <div id="confetti-layer"></div>

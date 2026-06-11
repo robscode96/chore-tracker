@@ -452,10 +452,21 @@ h1, h2, h3, .btn, .day-chip, .progress-text, .section-title {
 
 .chore-label {
   flex: 1;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
   font-size: 1rem;
   font-weight: 700;
   cursor: pointer;
   user-select: none;
+}
+
+.chore-emoji {
+  flex-shrink: 0;
+}
+
+.chore-text {
+  min-width: 0; /* wrapped lines stay aligned with the text, not the emoji */
 }
 
 .section.muted .chore-label {
@@ -463,7 +474,7 @@ h1, h2, h3, .btn, .day-chip, .progress-text, .section-title {
   color: var(--ink-soft);
 }
 
-.chore-item.done .chore-label {
+.chore-item.done .chore-text {
   color: var(--ink-soft);
   text-decoration: line-through wavy rgba(43, 39, 36, 0.35) 1.5px;
 }
@@ -650,6 +661,208 @@ h1, h2, h3, .btn, .day-chip, .progress-text, .section-title {
 .empty-state .big {
   font-size: 2.6rem;
   margin-bottom: 10px;
+}
+
+.done-by.clickable {
+  cursor: pointer;
+}
+
+.done-by.clickable:hover {
+  transform: scale(1.06);
+}
+
+/* ---------- Credit menu ---------- */
+
+.credit-menu {
+  position: absolute;
+  z-index: 60;
+  background: var(--card);
+  border: var(--border);
+  border-radius: 14px;
+  box-shadow: var(--pop);
+  padding: 8px;
+  width: 180px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.credit-menu-title {
+  font-size: 0.74rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-soft);
+  padding: 4px 8px 2px;
+}
+
+.credit-option {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  border: none;
+  background: none;
+  border-radius: 10px;
+  padding: 6px 8px;
+  font-family: inherit;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--ink);
+  cursor: pointer;
+  text-align: left;
+}
+
+.credit-option:hover {
+  background: rgba(43, 39, 36, 0.07);
+}
+
+.credit-option.current {
+  background: #e9f7ef;
+}
+
+.credit-avatar {
+  width: 26px;
+  height: 26px;
+  font-size: 0.62rem;
+  box-shadow: none;
+  border-width: 2px;
+}
+
+/* ---------- Header buttons ---------- */
+
+.header-buttons {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.btn-alt {
+  background: var(--lilac);
+}
+
+/* ---------- Stats ---------- */
+
+.streak-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  background: var(--card);
+  border: var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--pop);
+  padding: 20px;
+  margin-bottom: 22px;
+}
+
+.streak-flame {
+  font-size: 2.4rem;
+}
+
+.streak-num {
+  font-family: "Fredoka", sans-serif;
+  font-size: 3rem;
+  font-weight: 700;
+  color: var(--coral);
+  line-height: 1;
+}
+
+.streak-text {
+  font-weight: 800;
+  color: var(--ink-soft);
+  font-size: 0.95rem;
+}
+
+.stat-body {
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.stat-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.stat-rank {
+  width: 26px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.stat-name {
+  font-weight: 800;
+  flex-shrink: 0;
+  width: 86px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stat-name-wide {
+  width: auto;
+  flex: 1;
+  min-width: 0;
+}
+
+.stat-bar-track {
+  flex: 1;
+  min-width: 40px;
+  height: 14px;
+  background: rgba(43, 39, 36, 0.08);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.stat-name-wide + .stat-bar-track {
+  flex: 0 0 90px;
+}
+
+.stat-bar {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--teal);
+  transition: width 0.5s ease;
+}
+
+.stat-bar.good { background: var(--green); }
+.stat-bar.ok { background: var(--amber); }
+.stat-bar.bad { background: var(--danger); }
+
+.stat-count {
+  font-family: "Fredoka", sans-serif;
+  font-weight: 600;
+  width: 38px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.stat-chip {
+  flex-shrink: 0;
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: var(--ink-soft);
+  background: rgba(43, 39, 36, 0.07);
+  border-radius: 999px;
+  padding: 3px 8px;
+  white-space: nowrap;
+}
+
+.stat-note {
+  margin: 4px 0;
+  color: var(--ink-soft);
+  font-weight: 600;
+  font-style: italic;
+}
+
+.stat-footer {
+  text-align: center;
+  color: var(--ink-soft);
+  font-weight: 700;
+  font-size: 0.85rem;
 }
 
 /* ---------- Confetti ---------- */

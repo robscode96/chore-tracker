@@ -66,6 +66,7 @@ function showLogin() {
   document.getElementById("login-view").hidden = false;
   document.getElementById("app-view").hidden = true;
   document.getElementById("admin-view").hidden = true;
+  document.getElementById("stats-view").hidden = true;
   document.getElementById("login-username").focus();
 }
 
@@ -81,6 +82,7 @@ async function showApp() {
   document.getElementById("add-chore-form").hidden = !me.isAdmin;
   document.getElementById("admin-btn").hidden = !me.isAdmin;
   document.getElementById("admin-view").hidden = true;
+  document.getElementById("stats-view").hidden = true;
 
   const hour = new Date().getHours();
   const part = hour < 12 ? "Morning" : hour < 17 ? "Afternoon" : "Evening";
@@ -210,7 +212,8 @@ function renderProgress() {
   const circumference = 2 * Math.PI * 18;
   ring.style.strokeDasharray = circumference;
   ring.style.strokeDashoffset = circumference * (1 - pct / 100);
-  document.getElementById("progress-text").textContent = `${pct}%`;
+  ring.style.stroke = pct === 100 ? "#f5a524" : ""; // gold when everything's done
+  document.getElementById("progress-text").textContent = pct === 100 ? "🏆" : `${pct}%`;
 
   if (pct === 100 && lastPct !== null && lastPct < 100) celebrate();
   lastPct = pct;
@@ -238,9 +241,17 @@ function renderChore(chore, muted) {
     li.appendChild(toggle);
   }
 
+  // Emoji and text are separate spans so wrapped lines align with the text
+  // (hanging indent) instead of sliding under the emoji.
   const label = document.createElement("span");
   label.className = "chore-label";
-  label.textContent = `${emojiFor(chore.name)} ${chore.name}`;
+  const emoji = document.createElement("span");
+  emoji.className = "chore-emoji";
+  emoji.textContent = emojiFor(chore.name);
+  const text = document.createElement("span");
+  text.className = "chore-text";
+  text.textContent = chore.name;
+  label.append(emoji, text);
   if (!muted) label.addEventListener("click", () => toggleChore(chore));
   li.appendChild(label);
 
@@ -262,8 +273,21 @@ function renderChore(chore, muted) {
     const badge = document.createElement("span");
     badge.className = "done-by";
     badge.style.background = colorFor(chore.completedBy);
-    badge.textContent = chore.completedBy;
-    badge.title = `Done by ${chore.completedBy}`;
+    // Weekly/monthly chores show which day they got done.
+    badge.textContent =
+      ["weekly", "monthly"].includes(chore.freq) && chore.completedAt
+        ? `${chore.completedBy} · ${new Date(chore.completedAt).toLocaleDateString(undefined, { weekday: "short" })}`
+        : chore.completedBy;
+    if (me?.isAdmin) {
+      badge.classList.add("clickable");
+      badge.title = "Change who did it";
+      badge.addEventListener("click", (e) => {
+        e.stopPropagation();
+        openCreditMenu(badge, chore);
+      });
+    } else {
+      badge.title = `Done by ${chore.completedBy}`;
+    }
     li.appendChild(badge);
   }
 
@@ -288,12 +312,73 @@ async function toggleChore(chore) {
   // Optimistic update so the checkbox feels instant.
   chore.done = !chore.done;
   chore.completedBy = chore.done ? me.username : null;
+  chore.completedAt = chore.done ? new Date().toISOString() : null;
   renderChores();
+  try {
+    navigator.vibrate?.(15);
+  } catch {}
   try {
     await api(`/api/chores/${chore.id}/toggle`, { method: "POST" });
   } finally {
     await refreshChores().catch(() => {});
   }
+}
+
+/* ---------- Credit menu (admin: mark done by someone else) ---------- */
+
+let members = [];
+
+async function loadMembers() {
+  if (members.length === 0) {
+    const data = await api("/api/users");
+    members = data.users;
+  }
+  return members;
+}
+
+function closeCreditMenu() {
+  document.querySelector(".credit-menu")?.remove();
+}
+
+async function openCreditMenu(anchor, chore) {
+  closeCreditMenu();
+  const crew = await loadMembers();
+
+  const menu = document.createElement("div");
+  menu.className = "credit-menu";
+  const title = document.createElement("div");
+  title.className = "credit-menu-title";
+  title.textContent = "Who did it?";
+  menu.appendChild(title);
+
+  for (const user of crew) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "credit-option";
+    if (user.username === chore.completedBy) btn.classList.add("current");
+    const dot = document.createElement("span");
+    dot.className = "user-avatar credit-avatar";
+    dot.style.background = colorFor(user.username);
+    dot.textContent = user.username.slice(0, 2).toUpperCase();
+    btn.append(dot, document.createTextNode(user.username));
+    btn.addEventListener("click", async () => {
+      closeCreditMenu();
+      await api(`/api/chores/${chore.id}/completion`, {
+        method: "PATCH",
+        body: JSON.stringify({ userId: user.id }),
+      });
+      await refreshChores();
+    });
+    menu.appendChild(btn);
+  }
+
+  const rect = anchor.getBoundingClientRect();
+  menu.style.top = rect.bottom + window.scrollY + 6 + "px";
+  menu.style.left = Math.max(8, Math.min(rect.left + window.scrollX, window.innerWidth - 188)) + "px";
+  document.body.appendChild(menu);
+  setTimeout(() => {
+    document.addEventListener("click", closeCreditMenu, { once: true });
+  }, 0);
 }
 
 /* ---------- Confetti ---------- */
@@ -329,6 +414,7 @@ function hideAdmin() {
 
 async function refreshUsers() {
   const data = await api("/api/users");
+  members = data.users; // keep the credit-menu list in sync
   renderUsers(data.users);
 }
 
@@ -410,6 +496,132 @@ function renderUsers(users) {
   }
 }
 
+/* ---------- Stats ---------- */
+
+async function showStats() {
+  document.getElementById("admin-view").hidden = true;
+  document.getElementById("stats-view").hidden = false;
+  const main = document.getElementById("stats-sections");
+  main.innerHTML = '<div class="empty-state"><div class="big">📊</div><p>Crunching the numbers…</p></div>';
+  const stats = await api("/api/stats");
+  renderStats(stats);
+}
+
+function hideStats() {
+  document.getElementById("stats-view").hidden = true;
+  document.getElementById("admin-view").hidden = false;
+}
+
+function statCard(tone, title, meta) {
+  const section = document.createElement("section");
+  section.className = `section tone-${tone}`;
+  const header = document.createElement("div");
+  header.className = "section-header";
+  header.innerHTML = `<span class="section-title">${title}</span>${
+    meta ? `<span class="section-meta">${meta}</span>` : ""
+  }`;
+  section.appendChild(header);
+  const body = document.createElement("div");
+  body.className = "stat-body";
+  section.appendChild(body);
+  return { section, body };
+}
+
+function renderStats(stats) {
+  const main = document.getElementById("stats-sections");
+  main.innerHTML = "";
+
+  // Streak banner
+  const streak = document.createElement("div");
+  streak.className = "streak-banner";
+  if (stats.streak > 0) {
+    streak.innerHTML = `<span class="streak-flame">🔥</span>
+      <span class="streak-num">${stats.streak}</span>
+      <span class="streak-text">day streak of finishing<br>every daily chore!</span>`;
+  } else {
+    streak.innerHTML = `<span class="streak-flame">🌱</span>
+      <span class="streak-text">No streak yet — finish today's<br>list to light the fire!</span>`;
+  }
+  main.appendChild(streak);
+
+  // Leaderboard
+  const medals = ["🥇", "🥈", "🥉"];
+  const lb = statCard("teal", "🏆 Leaderboard", "all-time check-offs");
+  const maxTotal = Math.max(1, ...stats.leaderboard.map((u) => u.total));
+  stats.leaderboard.forEach((user, i) => {
+    const row = document.createElement("div");
+    row.className = "stat-row";
+    row.innerHTML = `
+      <span class="stat-rank">${medals[i] || "&nbsp;"}</span>
+      <span class="stat-name">${escapeHtml(user.username)}</span>
+      <span class="stat-bar-track">
+        <span class="stat-bar" style="width:${Math.round((user.total / maxTotal) * 100)}%;background:${colorFor(user.username)}"></span>
+      </span>
+      <span class="stat-count">${user.total}</span>
+      <span class="stat-chip">+${user.thisWeek} this wk</span>`;
+    lb.body.appendChild(row);
+  });
+  main.appendChild(lb.section);
+
+  // On-time rates
+  const rate = statCard(
+    "coral",
+    "🎯 On-time rate",
+    stats.overall.pct === null ? "last 30 days" : `${stats.overall.pct}% overall · last 30 days`
+  );
+  if (stats.choreRates.length === 0) {
+    rate.body.innerHTML =
+      '<p class="stat-note">Too early to tell — check back once chores have been around a few days!</p>';
+  } else {
+    for (const c of stats.choreRates) {
+      const row = document.createElement("div");
+      row.className = "stat-row";
+      row.innerHTML = `
+        <span class="stat-name stat-name-wide">${escapeHtml(c.name)}</span>
+        <span class="stat-bar-track">
+          <span class="stat-bar ${c.pct >= 80 ? "good" : c.pct >= 50 ? "ok" : "bad"}" style="width:${c.pct}%"></span>
+        </span>
+        <span class="stat-count">${c.pct}%</span>
+        <span class="stat-chip">${c.done}/${c.expected}</span>`;
+      rate.body.appendChild(row);
+    }
+  }
+  main.appendChild(rate.section);
+
+  // Most-done chores
+  const top = statCard("amber", "💪 Most done", "hall of fame");
+  if (stats.topChores.length === 0) {
+    top.body.innerHTML = '<p class="stat-note">Nothing checked off yet!</p>';
+  } else {
+    stats.topChores.forEach((c, i) => {
+      const row = document.createElement("div");
+      row.className = "stat-row";
+      row.innerHTML = `
+        <span class="stat-rank">${i + 1}.</span>
+        <span class="stat-name stat-name-wide">${escapeHtml(c.name)}</span>
+        <span class="stat-chip">${c.count}×</span>`;
+      top.body.appendChild(row);
+    });
+  }
+  main.appendChild(top.section);
+
+  // Fun footer facts
+  const facts = document.createElement("p");
+  facts.className = "stat-footer";
+  const bits = [`${stats.totals.completions} chores checked off all-time`];
+  if (stats.busiestDay) {
+    bits.push(`busiest day: ${DAY_NAMES[stats.busiestDay.dow]}`);
+  }
+  facts.textContent = bits.join(" · ");
+  main.appendChild(facts);
+}
+
+function escapeHtml(text) {
+  const div = document.createElement("div");
+  div.textContent = text;
+  return div.innerHTML;
+}
+
 /* ---------- Day picker ---------- */
 
 function buildDayPicker() {
@@ -477,6 +689,12 @@ document.getElementById("admin-btn").addEventListener("click", () => {
 });
 
 document.getElementById("admin-back-btn").addEventListener("click", hideAdmin);
+
+document.getElementById("stats-btn").addEventListener("click", () => {
+  showStats().catch(() => {});
+});
+
+document.getElementById("stats-back-btn").addEventListener("click", hideStats);
 
 document.getElementById("add-user-form").addEventListener("submit", async (e) => {
   e.preventDefault();

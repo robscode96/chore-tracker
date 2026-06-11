@@ -63,7 +63,7 @@ async function requireAdmin(req, res, next) {
       req.session.userId,
     ]);
     if (!rows[0]?.is_admin) {
-      return res.status(403).json({ error: "Only the admin can change the chore list" });
+      return res.status(403).json({ error: "Admins only" });
     }
     next();
   } catch (err) {
@@ -143,6 +143,7 @@ app.get("/api/chores", requireAuth, async (req, res, next) => {
         timeOfDay: r.time_of_day,
         done: r.completed_by_id !== null || r.completed_at !== null,
         completedBy: r.completed_by,
+        completedAt: r.completed_at,
       })),
     });
   } catch (err) {
@@ -216,6 +217,173 @@ app.post("/api/chores/:id/toggle", requireAuth, async (req, res, next) => {
       return res.json({ done: true });
     }
     res.json({ done: false });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Admin can change who gets credit for the current period's completion
+// (e.g. Robert marking a chore as done by Karen).
+app.patch("/api/chores/:id/completion", requireAdmin, async (req, res, next) => {
+  try {
+    const userId = Number(req.body?.userId);
+    const { rows: userRows } = await pool.query("SELECT id FROM users WHERE id = $1", [userId]);
+    if (!userRows[0]) return res.status(400).json({ error: "No such member" });
+
+    const { rows: choreRows } = await pool.query("SELECT id, freq FROM chores WHERE id = $1", [
+      req.params.id,
+    ]);
+    if (!choreRows[0]) return res.status(404).json({ error: "Chore not found" });
+
+    const key = currentPeriodKey(choreRows[0].freq);
+    const upd = await pool.query(
+      "UPDATE completions SET user_id = $1 WHERE chore_id = $2 AND period_key = $3",
+      [userId, choreRows[0].id, key]
+    );
+    if (upd.rowCount === 0) {
+      return res.status(409).json({ error: "That chore isn't checked off right now" });
+    }
+    res.json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/* ---------- Stats (admin only) ---------- */
+
+app.get("/api/stats", requireAdmin, async (req, res, next) => {
+  try {
+    const [leaderQ, topQ, dowQ, choresQ, compsQ] = await Promise.all([
+      pool.query(
+        `SELECT u.id, u.username,
+                COUNT(c.chore_id)::int AS total,
+                COUNT(c.chore_id) FILTER (WHERE c.completed_at > now() - interval '30 days')::int AS last30,
+                COUNT(c.chore_id) FILTER (WHERE c.completed_at >= date_trunc('week', now()))::int AS "thisWeek"
+         FROM users u
+         LEFT JOIN completions c ON c.user_id = u.id
+         GROUP BY u.id, u.username
+         ORDER BY total DESC, u.id`
+      ),
+      pool.query(
+        `SELECT ch.name, COUNT(*)::int AS count
+         FROM completions c JOIN chores ch ON ch.id = c.chore_id
+         GROUP BY ch.id, ch.name
+         ORDER BY count DESC, ch.name
+         LIMIT 5`
+      ),
+      pool.query(
+        `SELECT EXTRACT(DOW FROM c.completed_at)::int AS dow, COUNT(*)::int AS count
+         FROM completions c
+         GROUP BY 1 ORDER BY 2 DESC LIMIT 1`
+      ),
+      pool.query("SELECT id, name, freq, days, created_at FROM chores"),
+      pool.query("SELECT chore_id, period_key FROM completions"),
+    ]);
+
+    const doneKeys = new Map(); // chore_id -> Set of period keys
+    for (const row of compsQ.rows) {
+      if (!doneKeys.has(row.chore_id)) doneKeys.set(row.chore_id, new Set());
+      doneKeys.get(row.chore_id).add(row.period_key);
+    }
+
+    const today = new Date();
+    const todayKey = dateKey(today);
+
+    // On-time rates over the last 30 days, counting only fully elapsed
+    // periods (today / the current week / the current month aren't held
+    // against anyone while they're still in progress).
+    const monthStartKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
+    const thisWeekKey = currentPeriodKey("weekly", today);
+    const choreRates = [];
+    let overallDone = 0;
+    let overallExpected = 0;
+
+    for (const chore of choresQ.rows) {
+      const createdKey = dateKey(new Date(chore.created_at));
+      const expected = new Set();
+      const d = new Date(today);
+      d.setDate(d.getDate() - 29);
+      for (; dateKey(d) <= todayKey; d.setDate(d.getDate() + 1)) {
+        const dKey = dateKey(d);
+        if (dKey < createdKey) continue;
+        if (chore.freq === "daily" || chore.freq === "days") {
+          if (dKey >= todayKey) continue; // today still in progress
+          if (chore.freq === "days" && !(chore.days || []).includes(d.getDay())) continue;
+          expected.add(dKey);
+        } else if (chore.freq === "weekly") {
+          const key = currentPeriodKey("weekly", d);
+          if (key !== thisWeekKey) expected.add(key);
+        } else {
+          const key = currentPeriodKey("monthly", d);
+          if (key !== monthStartKey) expected.add(key);
+        }
+      }
+      if (expected.size === 0) continue;
+      const done = [...expected].filter((k) => doneKeys.get(chore.id)?.has(k)).length;
+      overallDone += done;
+      overallExpected += expected.size;
+      choreRates.push({
+        name: chore.name,
+        freq: chore.freq,
+        done,
+        expected: expected.size,
+        pct: Math.round((done / expected.size) * 100),
+      });
+    }
+    choreRates.sort((a, b) => b.pct - a.pct || b.expected - a.expected);
+
+    // Streak: consecutive days where every due daily/day-specific chore got
+    // done. Today joins the streak once it's fully done; an unfinished today
+    // doesn't break yesterday's streak.
+    const dailies = choresQ.rows
+      .filter((c) => c.freq === "daily" || c.freq === "days")
+      .map((c) => ({ ...c, createdKey: dateKey(new Date(c.created_at)) }));
+    let streak = 0;
+    if (dailies.length > 0) {
+      const earliestKey = dailies.reduce(
+        (min, c) => (c.createdKey < min ? c.createdKey : min),
+        dailies[0].createdKey
+      );
+      const dueOn = (d, key) =>
+        dailies.filter(
+          (c) =>
+            c.createdKey <= key &&
+            (c.freq === "daily" || (c.days || []).includes(d.getDay()))
+        );
+      const allDone = (d, key) =>
+        dueOn(d, key).every((c) => doneKeys.get(c.id)?.has(key));
+
+      const todayDue = dueOn(today, todayKey);
+      if (todayDue.length > 0 && allDone(today, todayKey)) streak++;
+
+      const d = new Date(today);
+      for (let i = 0; i < 365; i++) {
+        d.setDate(d.getDate() - 1);
+        const key = dateKey(d);
+        if (key < earliestKey) break;
+        const due = dueOn(d, key);
+        if (due.length === 0) continue;
+        if (!allDone(d, key)) break;
+        streak++;
+      }
+    }
+
+    res.json({
+      leaderboard: leaderQ.rows,
+      topChores: topQ.rows,
+      busiestDay: dowQ.rows[0] || null,
+      streak,
+      choreRates,
+      overall: {
+        done: overallDone,
+        expected: overallExpected,
+        pct: overallExpected ? Math.round((overallDone / overallExpected) * 100) : null,
+      },
+      totals: {
+        completions: compsQ.rows.length,
+        chores: choresQ.rows.length,
+      },
+    });
   } catch (err) {
     next(err);
   }

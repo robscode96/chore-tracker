@@ -72,6 +72,9 @@ async function showApp() {
   avatar.textContent = me.username.slice(0, 2).toUpperCase();
   avatar.style.background = colorFor(me.username);
 
+  // Only the admin can change what's on the board.
+  document.getElementById("add-chore-form").hidden = !me.isAdmin;
+
   const hour = new Date().getHours();
   const part = hour < 12 ? "Morning" : hour < 17 ? "Afternoon" : "Evening";
   document.getElementById("greeting").textContent = `${part}, ${me.username}!`;
@@ -152,7 +155,7 @@ function renderChores() {
     empty.className = "empty-state";
     empty.innerHTML = `<div class="big">🧹</div>
       <strong>Nothing on the board!</strong>
-      <p>Add the first chore above.</p>`;
+      <p>${me?.isAdmin ? "Add the first chore above." : "Enjoy the day off!"}</p>`;
     main.appendChild(empty);
     return;
   }
@@ -244,17 +247,19 @@ function renderChore(chore, muted) {
     li.appendChild(badge);
   }
 
-  const del = document.createElement("button");
-  del.className = "delete-btn";
-  del.type = "button";
-  del.title = "Remove chore";
-  del.textContent = "✕";
-  del.addEventListener("click", async () => {
-    if (!confirm(`Remove "${chore.name}" for everyone?`)) return;
-    await api(`/api/chores/${chore.id}`, { method: "DELETE" });
-    await refreshChores();
-  });
-  li.appendChild(del);
+  if (me?.isAdmin) {
+    const del = document.createElement("button");
+    del.className = "delete-btn";
+    del.type = "button";
+    del.title = "Remove chore";
+    del.textContent = "✕";
+    del.addEventListener("click", async () => {
+      if (!confirm(`Remove "${chore.name}" for everyone?`)) return;
+      await api(`/api/chores/${chore.id}`, { method: "DELETE" });
+      await refreshChores();
+    });
+    li.appendChild(del);
+  }
 
   return li;
 }

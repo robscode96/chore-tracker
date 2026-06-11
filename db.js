@@ -9,9 +9,9 @@ const pool = new Pool({
 });
 
 const SEED_USERS = [
-  { username: "Robert", password: "1" },
-  { username: "Karen", password: "2" },
-  { username: "Samantha", password: "3" },
+  { username: "Robert", password: "1", admin: true },
+  { username: "Karen", password: "2", admin: false },
+  { username: "Samantha", password: "3", admin: false },
 ];
 
 const SEED_CHORES = [
@@ -48,20 +48,23 @@ async function init() {
   `);
 
   // Migrations for databases created by earlier versions: add the days
-  // column and widen the freq constraint to allow day-specific chores.
+  // column and widen the freq constraint to allow day-specific chores,
+  // and add the admin flag (Robert manages the board).
   await pool.query(`
     ALTER TABLE chores ADD COLUMN IF NOT EXISTS days INTEGER[];
     ALTER TABLE chores DROP CONSTRAINT IF EXISTS chores_freq_check;
     ALTER TABLE chores ADD CONSTRAINT chores_freq_check
       CHECK (freq IN ('daily', 'weekly', 'monthly', 'days'));
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT false;
+    UPDATE users SET is_admin = true WHERE LOWER(username) = 'robert';
   `);
 
   const { rows: existingUsers } = await pool.query("SELECT COUNT(*)::int AS n FROM users");
   if (existingUsers[0].n === 0) {
     for (const u of SEED_USERS) {
       await pool.query(
-        "INSERT INTO users (username, password_hash) VALUES ($1, $2)",
-        [u.username, bcrypt.hashSync(u.password, 10)]
+        "INSERT INTO users (username, password_hash, is_admin) VALUES ($1, $2, $3)",
+        [u.username, bcrypt.hashSync(u.password, 10), u.admin]
       );
     }
     console.log("Seeded users:", SEED_USERS.map((u) => u.username).join(", "));

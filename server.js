@@ -56,6 +56,21 @@ function requireAuth(req, res, next) {
   next();
 }
 
+async function requireAdmin(req, res, next) {
+  try {
+    if (!req.session.userId) return res.status(401).json({ error: "Not logged in" });
+    const { rows } = await pool.query("SELECT is_admin FROM users WHERE id = $1", [
+      req.session.userId,
+    ]);
+    if (!rows[0]?.is_admin) {
+      return res.status(403).json({ error: "Only the admin can change the chore list" });
+    }
+    next();
+  } catch (err) {
+    next(err);
+  }
+}
+
 app.post("/api/login", async (req, res, next) => {
   try {
     const { username, password } = req.body || {};
@@ -63,7 +78,7 @@ app.post("/api/login", async (req, res, next) => {
       return res.status(400).json({ error: "Username and password required" });
     }
     const { rows } = await pool.query(
-      "SELECT id, username, password_hash FROM users WHERE LOWER(username) = LOWER($1)",
+      "SELECT id, username, password_hash, is_admin FROM users WHERE LOWER(username) = LOWER($1)",
       [String(username).trim()]
     );
     const user = rows[0];
@@ -71,7 +86,7 @@ app.post("/api/login", async (req, res, next) => {
       return res.status(401).json({ error: "Wrong username or password" });
     }
     req.session.userId = user.id;
-    res.json({ id: user.id, username: user.username });
+    res.json({ id: user.id, username: user.username, isAdmin: user.is_admin });
   } catch (err) {
     next(err);
   }
@@ -85,9 +100,10 @@ app.post("/api/logout", (req, res) => {
 app.get("/api/me", async (req, res, next) => {
   try {
     if (!req.session.userId) return res.json({ user: null });
-    const { rows } = await pool.query("SELECT id, username FROM users WHERE id = $1", [
-      req.session.userId,
-    ]);
+    const { rows } = await pool.query(
+      "SELECT id, username, is_admin AS \"isAdmin\" FROM users WHERE id = $1",
+      [req.session.userId]
+    );
     res.json({ user: rows[0] || null });
   } catch (err) {
     next(err);
@@ -133,7 +149,7 @@ app.get("/api/chores", requireAuth, async (req, res, next) => {
   }
 });
 
-app.post("/api/chores", requireAuth, async (req, res, next) => {
+app.post("/api/chores", requireAdmin, async (req, res, next) => {
   try {
     const name = String(req.body?.name || "").trim().slice(0, 60);
     const freq = String(req.body?.freq || "");
@@ -162,7 +178,7 @@ app.post("/api/chores", requireAuth, async (req, res, next) => {
   }
 });
 
-app.delete("/api/chores/:id", requireAuth, async (req, res, next) => {
+app.delete("/api/chores/:id", requireAdmin, async (req, res, next) => {
   try {
     const { rowCount } = await pool.query("DELETE FROM chores WHERE id = $1", [req.params.id]);
     if (rowCount === 0) return res.status(404).json({ error: "Chore not found" });

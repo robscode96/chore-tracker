@@ -38,6 +38,10 @@ let chores = [];
 let serverToday = new Date().getDay();
 let lastPct = null;
 let pickedDays = new Set();
+let pickedTime = "any";
+
+const TIME_ORDER = { morning: 0, any: 1, evening: 2 };
+const TIME_TAGS = { morning: "☀️ morning", evening: "🌙 evening" };
 
 /* ---------- API helpers ---------- */
 
@@ -61,6 +65,7 @@ async function api(path, options = {}) {
 function showLogin() {
   document.getElementById("login-view").hidden = false;
   document.getElementById("app-view").hidden = true;
+  document.getElementById("admin-view").hidden = true;
   document.getElementById("login-username").focus();
 }
 
@@ -72,8 +77,10 @@ async function showApp() {
   avatar.textContent = me.username.slice(0, 2).toUpperCase();
   avatar.style.background = colorFor(me.username);
 
-  // Only the admin can change what's on the board.
+  // Only the admin can change what's on the board or manage the household.
   document.getElementById("add-chore-form").hidden = !me.isAdmin;
+  document.getElementById("admin-btn").hidden = !me.isAdmin;
+  document.getElementById("admin-view").hidden = true;
 
   const hour = new Date().getHours();
   const part = hour < 12 ? "Morning" : hour < 17 ? "Afternoon" : "Evening";
@@ -117,7 +124,13 @@ function sectionsFor(list) {
       emoji: "☀️",
       tone: "coral",
       note: "resets at midnight",
-      chores: list.filter(dueToday),
+      chores: list
+        .filter(dueToday)
+        .slice()
+        .sort(
+          (a, b) =>
+            (TIME_ORDER[a.timeOfDay] ?? 1) - (TIME_ORDER[b.timeOfDay] ?? 1)
+        ),
     },
     {
       title: "This Week",
@@ -231,6 +244,13 @@ function renderChore(chore, muted) {
   if (!muted) label.addEventListener("click", () => toggleChore(chore));
   li.appendChild(label);
 
+  if (TIME_TAGS[chore.timeOfDay]) {
+    const time = document.createElement("span");
+    time.className = "day-tags time-" + chore.timeOfDay;
+    time.textContent = TIME_TAGS[chore.timeOfDay];
+    li.appendChild(time);
+  }
+
   if (chore.freq === "days" && chore.days?.length) {
     const days = document.createElement("span");
     days.className = "day-tags";
@@ -293,6 +313,103 @@ function celebrate() {
   }
 }
 
+/* ---------- Admin: household management ---------- */
+
+async function showAdmin() {
+  document.getElementById("app-view").hidden = true;
+  document.getElementById("admin-view").hidden = false;
+  await refreshUsers();
+}
+
+function hideAdmin() {
+  document.getElementById("admin-view").hidden = true;
+  document.getElementById("app-view").hidden = false;
+  refreshChores().catch(() => {});
+}
+
+async function refreshUsers() {
+  const data = await api("/api/users");
+  renderUsers(data.users);
+}
+
+function renderUsers(users) {
+  const list = document.getElementById("user-list");
+  list.innerHTML = "";
+
+  for (const user of users) {
+    const li = document.createElement("li");
+    li.className = "chore-item";
+    const isMe = user.id === me.id;
+
+    const avatar = document.createElement("span");
+    avatar.className = "user-avatar";
+    avatar.style.background = colorFor(user.username);
+    avatar.textContent = user.username.slice(0, 2).toUpperCase();
+
+    const label = document.createElement("span");
+    label.className = "chore-label member-label";
+    label.textContent = user.username + (isMe ? " (you)" : "");
+
+    li.append(avatar, label);
+
+    if (user.isAdmin) {
+      const star = document.createElement("span");
+      star.className = "admin-pill";
+      star.textContent = "⭐ admin";
+      li.appendChild(star);
+    }
+
+    const actions = document.createElement("span");
+    actions.className = "member-actions";
+
+    if (!isMe) {
+      const adminBtn = document.createElement("button");
+      adminBtn.className = "mini-btn";
+      adminBtn.type = "button";
+      adminBtn.textContent = user.isAdmin ? "Remove admin" : "Make admin";
+      adminBtn.addEventListener("click", async () => {
+        await api(`/api/users/${user.id}`, {
+          method: "PATCH",
+          body: JSON.stringify({ isAdmin: !user.isAdmin }),
+        });
+        await refreshUsers();
+      });
+      actions.appendChild(adminBtn);
+    }
+
+    const pwBtn = document.createElement("button");
+    pwBtn.className = "mini-btn";
+    pwBtn.type = "button";
+    pwBtn.textContent = "New password";
+    pwBtn.addEventListener("click", async () => {
+      const password = prompt(`New password for ${user.username}:`);
+      if (!password) return;
+      await api(`/api/users/${user.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ password }),
+      });
+      alert(`Password updated for ${user.username}.`);
+    });
+    actions.appendChild(pwBtn);
+
+    if (!isMe) {
+      const delBtn = document.createElement("button");
+      delBtn.className = "mini-btn danger";
+      delBtn.type = "button";
+      delBtn.textContent = "Remove";
+      delBtn.addEventListener("click", async () => {
+        if (!confirm(`Remove ${user.username} from the household?`)) return;
+        await api(`/api/users/${user.id}`, { method: "DELETE" });
+        await refreshUsers();
+      });
+      actions.appendChild(delBtn);
+    }
+
+    li.appendChild(actions);
+    list.appendChild(li);
+  }
+}
+
 /* ---------- Day picker ---------- */
 
 function buildDayPicker() {
@@ -342,6 +459,43 @@ document.getElementById("logout-btn").addEventListener("click", async () => {
 
 document.getElementById("chore-freq").addEventListener("change", (e) => {
   document.getElementById("day-picker").hidden = e.target.value !== "days";
+  // Morning/evening only makes sense for chores that recur within days.
+  document.getElementById("time-picker").hidden = !["daily", "days"].includes(e.target.value);
+});
+
+document.querySelectorAll(".time-chip").forEach((chip) => {
+  chip.addEventListener("click", () => {
+    pickedTime = chip.dataset.time;
+    document.querySelectorAll(".time-chip").forEach((c) => {
+      c.classList.toggle("picked", c === chip);
+    });
+  });
+});
+
+document.getElementById("admin-btn").addEventListener("click", () => {
+  showAdmin().catch(() => {});
+});
+
+document.getElementById("admin-back-btn").addEventListener("click", hideAdmin);
+
+document.getElementById("add-user-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const nameInput = document.getElementById("new-user-name");
+  const pwInput = document.getElementById("new-user-password");
+  const username = nameInput.value.trim();
+  const password = pwInput.value;
+  if (!username || !password) return;
+  try {
+    await api("/api/users", {
+      method: "POST",
+      body: JSON.stringify({ username, password }),
+    });
+    nameInput.value = "";
+    pwInput.value = "";
+    await refreshUsers();
+  } catch (err) {
+    alert(err.message);
+  }
 });
 
 document.getElementById("add-chore-form").addEventListener("submit", async (e) => {
@@ -356,7 +510,12 @@ document.getElementById("add-chore-form").addEventListener("submit", async (e) =
   }
   await api("/api/chores", {
     method: "POST",
-    body: JSON.stringify({ name, freq, days: [...pickedDays] }),
+    body: JSON.stringify({
+      name,
+      freq,
+      days: [...pickedDays],
+      timeOfDay: ["daily", "days"].includes(freq) ? pickedTime : "any",
+    }),
   });
   input.value = "";
   input.focus();

@@ -116,7 +116,7 @@ app.get("/api/chores", requireAuth, async (req, res, next) => {
   try {
     const keys = currentKeys();
     const { rows } = await pool.query(
-      `SELECT ch.id, ch.name, ch.freq, ch.days,
+      `SELECT ch.id, ch.name, ch.freq, ch.days, ch.time_of_day,
               comp.user_id AS completed_by_id,
               u.username AS completed_by,
               comp.completed_at
@@ -140,6 +140,7 @@ app.get("/api/chores", requireAuth, async (req, res, next) => {
         name: r.name,
         freq: r.freq,
         days: r.days,
+        timeOfDay: r.time_of_day,
         done: r.completed_by_id !== null || r.completed_at !== null,
         completedBy: r.completed_by,
       })),
@@ -168,9 +169,14 @@ app.post("/api/chores", requireAdmin, async (req, res, next) => {
       }
     }
 
+    const timeOfDay = ["any", "morning", "evening"].includes(req.body?.timeOfDay)
+      ? req.body.timeOfDay
+      : "any";
+
     const { rows } = await pool.query(
-      "INSERT INTO chores (name, freq, days) VALUES ($1, $2, $3) RETURNING id, name, freq, days",
-      [name, freq, days]
+      `INSERT INTO chores (name, freq, days, time_of_day) VALUES ($1, $2, $3, $4)
+       RETURNING id, name, freq, days, time_of_day AS "timeOfDay"`,
+      [name, freq, days, timeOfDay]
     );
     res.status(201).json(rows[0]);
   } catch (err) {
@@ -210,6 +216,87 @@ app.post("/api/chores/:id/toggle", requireAuth, async (req, res, next) => {
       return res.json({ done: true });
     }
     res.json({ done: false });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/* ---------- Household management (admin only) ---------- */
+
+app.get("/api/users", requireAdmin, async (req, res, next) => {
+  try {
+    const { rows } = await pool.query(
+      'SELECT id, username, is_admin AS "isAdmin" FROM users ORDER BY id'
+    );
+    res.json({ users: rows });
+  } catch (err) {
+    next(err);
+  }
+});
+
+app.post("/api/users", requireAdmin, async (req, res, next) => {
+  try {
+    const username = String(req.body?.username || "").trim().slice(0, 24);
+    const password = String(req.body?.password || "");
+    if (!username) return res.status(400).json({ error: "Name required" });
+    if (!password) return res.status(400).json({ error: "Password required" });
+    const { rows } = await pool.query(
+      `INSERT INTO users (username, password_hash, is_admin) VALUES ($1, $2, false)
+       RETURNING id, username, is_admin AS "isAdmin"`,
+      [username, bcrypt.hashSync(password, 10)]
+    );
+    res.status(201).json(rows[0]);
+  } catch (err) {
+    if (err.code === "23505") {
+      return res.status(409).json({ error: "That name is already taken" });
+    }
+    next(err);
+  }
+});
+
+app.patch("/api/users/:id", requireAdmin, async (req, res, next) => {
+  try {
+    const targetId = Number(req.params.id);
+
+    if (typeof req.body?.isAdmin === "boolean") {
+      if (targetId === req.session.userId && req.body.isAdmin === false) {
+        return res.status(400).json({ error: "You can't remove your own admin access" });
+      }
+      await pool.query("UPDATE users SET is_admin = $1 WHERE id = $2", [
+        req.body.isAdmin,
+        targetId,
+      ]);
+    }
+
+    if (req.body?.password !== undefined) {
+      const password = String(req.body.password);
+      if (!password) return res.status(400).json({ error: "Password can't be empty" });
+      await pool.query("UPDATE users SET password_hash = $1 WHERE id = $2", [
+        bcrypt.hashSync(password, 10),
+        targetId,
+      ]);
+    }
+
+    const { rows } = await pool.query(
+      'SELECT id, username, is_admin AS "isAdmin" FROM users WHERE id = $1',
+      [targetId]
+    );
+    if (!rows[0]) return res.status(404).json({ error: "User not found" });
+    res.json(rows[0]);
+  } catch (err) {
+    next(err);
+  }
+});
+
+app.delete("/api/users/:id", requireAdmin, async (req, res, next) => {
+  try {
+    const targetId = Number(req.params.id);
+    if (targetId === req.session.userId) {
+      return res.status(400).json({ error: "You can't remove yourself" });
+    }
+    const { rowCount } = await pool.query("DELETE FROM users WHERE id = $1", [targetId]);
+    if (rowCount === 0) return res.status(404).json({ error: "User not found" });
+    res.json({ ok: true });
   } catch (err) {
     next(err);
   }

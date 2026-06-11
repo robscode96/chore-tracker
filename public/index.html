@@ -62,6 +62,7 @@
           </svg>
           <span id="progress-text" class="progress-text">0%</span>
         </div>
+        <button id="admin-btn" class="gear" title="Manage household" hidden>⚙️</button>
         <button id="logout-btn" class="signout" title="Sign out">
           <span id="me-avatar" class="user-avatar"></span>
           <span class="signout-label">sign out</span>
@@ -90,9 +91,56 @@
         <span class="day-picker-label">Which days?</span>
         <div class="day-chips" id="day-chips"></div>
       </div>
+      <div id="time-picker" class="day-picker">
+        <span class="day-picker-label">When?</span>
+        <div class="day-chips">
+          <button type="button" class="day-chip time-chip picked" data-time="any">Anytime</button>
+          <button type="button" class="day-chip time-chip" data-time="morning">☀️ Morning</button>
+          <button type="button" class="day-chip time-chip" data-time="evening">🌙 Evening</button>
+        </div>
+      </div>
     </form>
 
     <main id="chore-sections"></main>
+  </div>
+
+  <!-- Admin: household management -->
+  <div id="admin-view" class="app" hidden>
+    <header class="app-header">
+      <div class="title-block">
+        <p class="greeting">Household</p>
+        <h1 class="day-title">Manage the crew</h1>
+      </div>
+      <button id="admin-back-btn" class="btn">← Back</button>
+    </header>
+
+    <form id="add-user-form" class="add-chore-form">
+      <div class="add-row">
+        <input
+          type="text"
+          id="new-user-name"
+          placeholder="New member's name"
+          maxlength="24"
+          autocomplete="off"
+        />
+        <input
+          type="text"
+          id="new-user-password"
+          placeholder="Their password"
+          maxlength="64"
+          autocomplete="off"
+        />
+        <button type="submit" class="btn">Add</button>
+      </div>
+    </form>
+
+    <section class="section tone-teal">
+      <div class="section-header">
+        <span class="section-title">👥 Members</span>
+        <span class="section-meta">admins can edit the board</span>
+      </div>
+      <ul id="user-list" class="chore-list"></ul>
+    </section>
   </div>
 
   <div id="confetti-layer"></div>

@@ -15,11 +15,11 @@ const SEED_USERS = [
 ];
 
 const SEED_CHORES = [
-  { name: "Make the beds", freq: "daily" },
-  { name: "Do the dishes", freq: "daily" },
-  { name: "Take out the trash", freq: "weekly" },
-  { name: "Vacuum the house", freq: "weekly" },
-  { name: "Clean the fridge", freq: "monthly" },
+  { name: "Make the beds", freq: "daily", time: "morning" },
+  { name: "Do the dishes", freq: "daily", time: "evening" },
+  { name: "Take out the trash", freq: "weekly", time: "any" },
+  { name: "Vacuum the house", freq: "weekly", time: "any" },
+  { name: "Clean the fridge", freq: "monthly", time: "any" },
 ];
 
 async function init() {
@@ -47,9 +47,9 @@ async function init() {
     );
   `);
 
-  // Migrations for databases created by earlier versions: add the days
-  // column and widen the freq constraint to allow day-specific chores,
-  // and add the admin flag (Robert manages the board).
+  // Migrations for databases created by earlier versions: day-specific
+  // chores, the admin flag (Robert manages the board), and morning/evening
+  // time slots for chores.
   await pool.query(`
     ALTER TABLE chores ADD COLUMN IF NOT EXISTS days INTEGER[];
     ALTER TABLE chores DROP CONSTRAINT IF EXISTS chores_freq_check;
@@ -57,6 +57,12 @@ async function init() {
       CHECK (freq IN ('daily', 'weekly', 'monthly', 'days'));
     ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT false;
     UPDATE users SET is_admin = true WHERE LOWER(username) = 'robert';
+    ALTER TABLE chores ADD COLUMN IF NOT EXISTS time_of_day TEXT NOT NULL DEFAULT 'any';
+    ALTER TABLE chores DROP CONSTRAINT IF EXISTS chores_time_check;
+    ALTER TABLE chores ADD CONSTRAINT chores_time_check
+      CHECK (time_of_day IN ('any', 'morning', 'evening'));
+    -- Login matches names case-insensitively, so uniqueness must too.
+    CREATE UNIQUE INDEX IF NOT EXISTS users_username_lower_idx ON users (LOWER(username));
   `);
 
   const { rows: existingUsers } = await pool.query("SELECT COUNT(*)::int AS n FROM users");
@@ -73,7 +79,11 @@ async function init() {
   const { rows: existingChores } = await pool.query("SELECT COUNT(*)::int AS n FROM chores");
   if (existingChores[0].n === 0) {
     for (const c of SEED_CHORES) {
-      await pool.query("INSERT INTO chores (name, freq) VALUES ($1, $2)", [c.name, c.freq]);
+      await pool.query("INSERT INTO chores (name, freq, time_of_day) VALUES ($1, $2, $3)", [
+        c.name,
+        c.freq,
+        c.time,
+      ]);
     }
     console.log("Seeded sample chores");
   }
